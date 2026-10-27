@@ -20,7 +20,7 @@ note: data/predictions.jsonl holds t17–t24 only. Gold unchanged.
 | runner | `python3 notebooks/qlora_qwen3_1_7b.py` |
 | this VM | no CUDA; CPU forward/backward OOM (~15 GiB cap) |
 | result | adapter not written here; use free GPU notebook per `notebooks/qlora_qwen3_1_7b.py` |
-| kaggle | `scripts/run_kaggle_training.sh` — needs `KAGGLE_USERNAME` + `KAGGLE_KEY` or `KAGGLE_JSON` in **environment secrets** (not visible in this session; `printenv` empty) |
+| kaggle | `scripts/run_kaggle_training.sh` — secrets absent on parent run `bc-b4c04bfc`; **relance** → cloud run [Kaggle GPU QLoRA train](https://cursor.com/agents/bc-698ed86a-cd4a-5478-8727-692c1b51f2b0) |
 
 ## Scores
 
