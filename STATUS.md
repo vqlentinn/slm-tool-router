@@ -2,7 +2,7 @@
 
 next: none
 updated: 2026-10-27
-waiting: training-go-ahead
+waiting: none
 
 ## Milestones
 
@@ -19,3 +19,4 @@ waiting: training-go-ahead
 - 2026-10-27 — Transfer blind solve: exact_match 1.000 on t17–t24. Next is keyword baseline.
 - 2026-10-27 — Keyword baseline scored on train and transfer. Next is QLoRA notebook stub.
 - 2026-10-27 — QLoRA notebook stub added; waiting for training go-ahead. Report written from the log.
+- 2026-10-27 — Training go-ahead granted; traces exported; QLoRA run blocked on this host (no GPU, CPU OOM). Use the notebook on a free GPU runtime.

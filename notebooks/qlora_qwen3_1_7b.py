@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 MODEL_ID = "Qwen/Qwen3-1.7B"
-MAX_SEQ_LENGTH = 4096
+MAX_SEQ_LENGTH = int(__import__("os").environ.get("MAX_SEQ_LENGTH", "1024"))
 LORA_R = 16
 LORA_ALPHA = 32
 LORA_DROPOUT = 0.05
@@ -47,10 +47,7 @@ class TrainSplit:
     path: Path
 
 
-SPLITS = (
-    TrainSplit("train", EXPORT_DIR / "train.jsonl"),
-    TrainSplit("transfer", EXPORT_DIR / "transfer.jsonl"),
-)
+TRAIN_TRACE = TrainSplit("train", EXPORT_DIR / "train.jsonl")
 
 
 def format_episode(instruction: str, calls: list[dict]) -> str:
@@ -70,20 +67,8 @@ def load_model_and_tokenizer():
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
     from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-    bnb = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.bfloat16,
-        bnb_4bit_use_double_quant=True,
-    )
+    use_cuda = torch.cuda.is_available()
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID,
-        quantization_config=bnb,
-        device_map="auto",
-        trust_remote_code=True,
-    )
-    model = prepare_model_for_kbit_training(model)
     lora = LoraConfig(
         r=LORA_R,
         lora_alpha=LORA_ALPHA,
@@ -91,6 +76,28 @@ def load_model_and_tokenizer():
         bias="none",
         task_type="CAUSAL_LM",
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+    )
+    if use_cuda:
+        bnb = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            MODEL_ID,
+            quantization_config=bnb,
+            device_map="auto",
+            trust_remote_code=True,
+        )
+        model = prepare_model_for_kbit_training(model)
+        return tokenizer, get_peft_model(model, lora)
+
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_ID,
+        torch_dtype=torch.float32,
+        low_cpu_mem_usage=True,
+        trust_remote_code=True,
     )
     return tokenizer, get_peft_model(model, lora)
 
@@ -104,56 +111,98 @@ def build_dataset(tokenizer):
 
     from datasets import Dataset
 
+    if not TRAIN_TRACE.path.is_file():
+        raise FileNotFoundError(
+            f"missing {TRAIN_TRACE.path}; run scripts/export_traces.py first"
+        )
     rows = []
-    for split in SPLITS:
-        if not split.path.is_file():
-            raise FileNotFoundError(
-                f"missing {split.path}; export traces before training"
-            )
-        for line in split.path.read_text(encoding="utf-8").splitlines():
-            if not line.strip():
-                continue
-            record = json.loads(line)
-            text = format_episode(record["instruction"], record["calls"])
-            rows.append({"text": text, "split": split.name})
+    for line in TRAIN_TRACE.path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        text = format_episode(record["instruction"], record["calls"])
+        rows.append({"text": text})
     dataset = Dataset.from_list(rows)
 
     def tokenize(batch):
-        return tokenizer(
+        encoded = tokenizer(
             batch["text"],
             truncation=True,
             max_length=MAX_SEQ_LENGTH,
             padding="max_length",
         )
+        encoded["labels"] = [row[:] for row in encoded["input_ids"]]
+        return encoded
 
-    return dataset.map(tokenize, batched=True, remove_columns=["text", "split"])
+    return dataset.map(tokenize, batched=True, remove_columns=["text"])
 
 
 # %% [markdown]
 # ## 4. Train (not executed in CI)
 
 # %%
-def train():
-    from transformers import TrainingArguments, Trainer
+def train() -> dict:
+    import json
+    import os
 
+    import torch
+    from datasets import Dataset
+    from trl import SFTConfig, SFTTrainer
+
+    if not TRAIN_TRACE.path.is_file():
+        raise FileNotFoundError(
+            f"missing {TRAIN_TRACE.path}; run scripts/export_traces.py first"
+        )
     tokenizer, model = load_model_and_tokenizer()
-    dataset = build_dataset(tokenizer)
+    rows = []
+    for line in TRAIN_TRACE.path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            record = json.loads(line)
+            rows.append(
+                {
+                    "text": format_episode(
+                        record["instruction"], record["calls"]
+                    )
+                }
+            )
+    dataset = Dataset.from_list(rows)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    args = TrainingArguments(
+    use_cuda = torch.cuda.is_available()
+    if not use_cuda:
+        raise RuntimeError(
+            "CUDA GPU required for QLoRA training; CPU runs OOM on this checkpoint."
+        )
+    max_steps = int(os.environ.get("TRAIN_MAX_STEPS", "0"))
+    sft_args = SFTConfig(
         output_dir=str(OUTPUT_DIR),
         num_train_epochs=NUM_EPOCHS,
         per_device_train_batch_size=BATCH_SIZE,
         gradient_accumulation_steps=GRAD_ACCUM,
         learning_rate=LEARNING_RATE,
-        logging_steps=10,
+        logging_steps=1,
         save_strategy="epoch",
         bf16=True,
+        max_seq_length=MAX_SEQ_LENGTH,
+        dataset_text_field="text",
+        max_steps=max_steps if max_steps > 0 else -1,
         report_to="none",
     )
-    trainer = Trainer(model=model, args=args, train_dataset=dataset, tokenizer=tokenizer)
-    trainer.train()
-    model.save_pretrained(OUTPUT_DIR / "adapter")
-    tokenizer.save_pretrained(OUTPUT_DIR / "adapter")
+    trainer = SFTTrainer(
+        model=model,
+        args=sft_args,
+        train_dataset=dataset,
+        processing_class=tokenizer,
+    )
+    result = trainer.train()
+    adapter_dir = OUTPUT_DIR / "adapter"
+    model.save_pretrained(adapter_dir)
+    tokenizer.save_pretrained(adapter_dir)
+    return {
+        "device": "cuda",
+        "global_step": result.global_step,
+        "train_loss": result.training_loss,
+        "output_dir": str(adapter_dir),
+    }
 
 
 # %% [markdown]
@@ -168,6 +217,6 @@ def train():
 
 # %%
 if __name__ == "__main__":
-    raise SystemExit(
-        "Training is blocked until waiting=training-go-ahead is acknowledged in STATUS.md."
-    )
+    import json
+
+    print(json.dumps(train(), indent=2))

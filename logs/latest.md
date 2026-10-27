@@ -8,8 +8,18 @@ transfer: 8/8
 held_out_tools: escalate lookup_customer_by_email quote_refund
 held_out_leaked_into_train: none
 tests: passed
-waiting: training-go-ahead
+waiting: none
 note: data/predictions.jsonl holds t17–t24 only. Gold unchanged.
+
+## QLoRA training (go-ahead: yes)
+
+| field | value |
+| --- | --- |
+| target | Qwen/Qwen3-1.7B |
+| traces | `scripts/export_traces.py` → `data/traces/train.jsonl` (16 rows, gitignored) |
+| runner | `python3 notebooks/qlora_qwen3_1_7b.py` |
+| this VM | no CUDA; CPU forward/backward OOM (~15 GiB cap) |
+| result | adapter not written here; use free GPU notebook per `notebooks/qlora_qwen3_1_7b.py` |
 
 ## Scores
 
