@@ -22,3 +22,4 @@ waiting: none
 - 2026-10-27 — Training go-ahead granted; traces exported; QLoRA run blocked on this host (no GPU, CPU OOM). Use the notebook on a free GPU runtime.
 - 2026-10-27 — Kaggle GPU runner added (`scripts/run_kaggle_training.sh`); API secrets not injected on this agent boot — recheck after secrets reload.
 - 2026-10-27 — User confirmed relance; Kaggle training delegated to fresh cloud run bc-698ed86a-cd4a-5478-8727-692c1b51f2b0.
+- 2026-10-27 — Relance run saw `KAGGLE_KEY` only; training blocked until `KAGGLE_USERNAME` or `KAGGLE_JSON` is added, then `./scripts/run_kaggle_training.sh` again.

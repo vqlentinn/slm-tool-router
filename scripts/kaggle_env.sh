@@ -20,6 +20,10 @@ path.write_text(
     encoding="utf-8",
 )
 PY
+elif [ -n "${KAGGLE_KEY:-}" ]; then
+  echo "KAGGLE_KEY is set but KAGGLE_USERNAME is missing." >&2
+  echo "Add secret KAGGLE_USERNAME (slug on https://www.kaggle.com/settings ) or replace both with KAGGLE_JSON." >&2
+  exit 1
 else
   echo "Kaggle API missing: set KAGGLE_USERNAME + KAGGLE_KEY or KAGGLE_JSON in environment secrets." >&2
   exit 1
