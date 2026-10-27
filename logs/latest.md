@@ -1,14 +1,14 @@
 # Latest
 
-milestone: M3
-result: keyword baseline scored
-next: M4
+milestone: M5
+result: report written from log
+next: none
 train: 16/16
 transfer: 8/8
 held_out_tools: escalate lookup_customer_by_email quote_refund
 held_out_leaked_into_train: none
 tests: passed
-waiting: none
+waiting: training-go-ahead
 note: data/predictions.jsonl holds t17–t24 only. Gold unchanged.
 
 ## Scores
