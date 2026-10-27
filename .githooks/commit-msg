@@ -1,0 +1,26 @@
+#!/bin/sh
+# Single author, from config/author. Extra attribution lines are dropped.
+set -e
+root=$(git rev-parse --show-toplevel)
+expected_name=$(sed -n '1p' "$root/config/author" | tr -d '\r')
+expected_email=$(sed -n '2p' "$root/config/author" | tr -d '\r')
+
+author_ident=$(git var GIT_AUTHOR_IDENT)
+committer_ident=$(git var GIT_COMMITTER_IDENT)
+author_email=$(printf '%s\n' "$author_ident" | sed -n 's/.*<\([^>]*\)>.*/\1/p')
+committer_email=$(printf '%s\n' "$committer_ident" | sed -n 's/.*<\([^>]*\)>.*/\1/p')
+author_name=$(printf '%s\n' "$author_ident" | sed 's/ <.*//')
+
+if [ "$author_name" != "$expected_name" ] || [ "$author_email" != "$expected_email" ] || [ "$committer_email" != "$expected_email" ]; then
+  echo "refusing commit: author must be $expected_name <$expected_email>" >&2
+  exit 1
+fi
+
+tmp=$(mktemp)
+grep -viE '^[[:space:]]*co-authored-by:' "$1" > "$tmp" || true
+if ! grep -q '[^[:space:]]' "$tmp"; then
+  echo "refusing empty commit message" >&2
+  rm -f "$tmp"
+  exit 1
+fi
+mv "$tmp" "$1"

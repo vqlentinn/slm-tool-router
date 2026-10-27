@@ -1,0 +1,24 @@
+{"id": "t01", "split": "train", "instruction": "Ada (customer ada) wants a full refund of order A100."}
+{"id": "t02", "split": "train", "instruction": "Tell customer ada where order B200 is."}
+{"id": "t03", "split": "train", "instruction": "Customer grace wants a full refund of order C300."}
+{"id": "t04", "split": "train", "instruction": "Customer ada wants a refund of order B200."}
+{"id": "t05", "split": "train", "instruction": "Customer noor wants a full refund of order F600."}
+{"id": "t06", "split": "train", "instruction": "Tell customer noor where order G700 is."}
+{"id": "t07", "split": "train", "instruction": "Customer sam wants a full refund of order H800."}
+{"id": "t08", "split": "train", "instruction": "Customer sam wants a full refund of order I900."}
+{"id": "t09", "split": "train", "instruction": "Customer noor wants a full refund of order J110."}
+{"id": "t10", "split": "train", "instruction": "Tell customer grace where order K120 is."}
+{"id": "t11", "split": "train", "instruction": "Customer ada wants a full refund of order E500."}
+{"id": "t12", "split": "train", "instruction": "Tell customer ada where order A100 is."}
+{"id": "t13", "split": "train", "instruction": "Tell customer sam where order H800 is."}
+{"id": "t14", "split": "train", "instruction": "Customer noor wants a refund of order G700."}
+{"id": "t15", "split": "train", "instruction": "Customer grace wants a refund of order K120."}
+{"id": "t16", "split": "train", "instruction": "Tell customer noor where order F600 is."}
+{"id": "t17", "split": "transfer", "instruction": "lin@example.com asks for a full refund of order D400. The message has no customer id."}
+{"id": "t18", "split": "transfer", "instruction": "Someone wrote from lin@example.com to ask where order D400 is. Reply to that customer."}
+{"id": "t19", "split": "transfer", "instruction": "What would a full refund of order D400 be? Do not refund it and do not send email."}
+{"id": "t20", "split": "transfer", "instruction": "Order E500 for customer ada is above the automatic refund cap. Hand it to a person. Do not email."}
+{"id": "t21", "split": "transfer", "instruction": "rai@example.com asks for a full refund of order L130. The message has no customer id."}
+{"id": "t22", "split": "transfer", "instruction": "rai@example.com wants a refund of order M140. If it cannot be refunded, hand it to a person and do not email."}
+{"id": "t23", "split": "transfer", "instruction": "lin@example.com wants a refund of order N150. If it cannot be refunded, hand it to a person and do not email."}
+{"id": "t24", "split": "transfer", "instruction": "What would a full refund of order L130 be? Do not refund it and do not send email."}
