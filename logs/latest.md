@@ -17,5 +17,6 @@ note: data/predictions.jsonl holds t17–t24 only. Gold unchanged.
 |-------|--------|---|-------------|------------|-------------|-------|
 | train | specification | 16 | 1.000 | 0.000 | 0.000 | 2.94 |
 | train | keyword baseline | 16 | 1.000 | 0.000 | 0.000 | 2.94 |
+| transfer | specification | 8 | 1.000 | 0.000 | 0.000 | 3.38 |
 | transfer | blind predictions | 8 | 1.000 | 0.000 | 0.000 | 3.38 |
 | transfer | keyword baseline | 8 | 1.000 | 0.000 | 0.000 | 3.38 |
