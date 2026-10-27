@@ -6,8 +6,9 @@ import argparse
 import json
 import sys
 
+from toolrouter.keyword import predict_all
 from toolrouter.score import execute, score_episode
-from toolrouter.tasks import catalog_ready, gap_lines, load_tasks
+from toolrouter.tasks import catalog_ready, gap_lines, load_instructions, load_tasks
 
 
 def check(tasks: list[dict]) -> list[str]:
@@ -57,7 +58,9 @@ def report(tasks: list[dict], predictions: list[dict]) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="toolrouter")
-    parser.add_argument("command", choices=["check", "gaps", "episode", "report"])
+    parser.add_argument(
+        "command", choices=["check", "gaps", "episode", "report", "baseline"]
+    )
     parser.add_argument("path", nargs="?")
     args = parser.parse_args(argv)
     tasks = load_tasks()
@@ -94,6 +97,14 @@ def main(argv: list[str] | None = None) -> int:
             stripped = line.strip()
             if stripped:
                 predictions.append(json.loads(stripped))
+        return report(tasks, predictions)
+
+    if args.command == "baseline":
+        out_path = args.path or "data/baseline.jsonl"
+        predictions = predict_all(load_instructions())
+        with open(out_path, "w", encoding="utf-8") as handle:
+            for row in predictions:
+                handle.write(json.dumps(row) + "\n")
         return report(tasks, predictions)
     return 2
 

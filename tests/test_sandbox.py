@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 from toolrouter.catalog import BY_NAME, CATALOG
+from toolrouter.keyword import keyword_hits, plan
 from toolrouter.score import execute, is_stagnant, score_episode
 from toolrouter.tasks import HELD_OUT_TOOLS, catalog_ready, load_instructions, load_tasks, tool_sets
 from toolrouter.tools import FUNCTIONS, fresh_world
@@ -98,6 +99,15 @@ def test_immediate_repeat_is_stagnation():
     ]
     _state, results = execute(calls)
     assert is_stagnant(calls, results) is True
+
+
+def test_keyword_baseline_scores_all_tasks():
+    tasks = load_tasks()
+    for task in tasks:
+        predicted = plan(task["instruction"])
+        result = score_episode(predicted, task["calls"])
+        assert result["success"], (task["id"], result)
+    assert keyword_hits("lookup order status", "lookup_order") >= 1
 
 
 def test_refund_mutates_a_copy():
