@@ -20,10 +20,10 @@ note: data/predictions.jsonl holds t17–t24 only. Gold unchanged.
 | runner | `python3 notebooks/qlora_qwen3_1_7b.py` |
 | this VM | no CUDA; CPU forward/backward OOM (~15 GiB cap) |
 | result | adapter not written here; use free GPU notebook per `notebooks/qlora_qwen3_1_7b.py` |
-| kaggle | **blocked** — env has `KAGGLE_KEY` only; need `KAGGLE_USERNAME`+`KAGGLE_KEY` or `KAGGLE_JSON` (run [bc-698ed86a](https://cursor.com/agents/bc-698ed86a-cd4a-5478-8727-692c1b51f2b0)); kernel not pushed |
-| kaggle_device | n/a |
-| kaggle_steps | n/a |
-| kaggle_success | false (credentials incomplete) |
+| kaggle | pushed/ran private kernel `slm-toolrouter-qlora-train` (v15); secrets OK; runner fixes (API token, bundle, T4 `machine_shape`, hf-mirror model fetch) — see [bc-234754e7](https://cursor.com/agents/bc-234754e7-fead-5670-8a8a-6fa17944866f) |
+| kaggle_device | **cuda T4 intended** (`NvidiaTeslaT4`); v9 reached bf16 load + hf-mirror download; v13–v15 **no GPU** (`nvidia-smi` missing, `torch 2.11.0+cpu`) — likely weekly GPU quota |
+| kaggle_steps | n/a (training loop not reached on last runs) |
+| kaggle_success | false — last kernel `KernelWorkerStatus.ERROR` (`RuntimeError`: CUDA required); no `KAGGLE_TRAINING_SUMMARY` in output |
 
 ## Scores
 

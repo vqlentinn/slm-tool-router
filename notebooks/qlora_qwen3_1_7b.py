@@ -25,7 +25,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-MODEL_ID = "Qwen/Qwen3-1.7B"
+MODEL_ID = __import__("os").environ.get("MODEL_ID", "Qwen/Qwen3-1.7B")
 MAX_SEQ_LENGTH = int(__import__("os").environ.get("MAX_SEQ_LENGTH", "1024"))
 LORA_R = 16
 LORA_ALPHA = 32
@@ -78,19 +78,31 @@ def load_model_and_tokenizer():
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
     )
     if use_cuda:
-        bnb = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_compute_dtype=torch.bfloat16,
-            bnb_4bit_use_double_quant=True,
-        )
+        try:
+            import bitsandbytes  # noqa: F401
+        except ImportError:
+            bitsandbytes = None  # type: ignore[assignment]
+        if bitsandbytes is not None:
+            bnb = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_use_double_quant=True,
+            )
+            model = AutoModelForCausalLM.from_pretrained(
+                MODEL_ID,
+                quantization_config=bnb,
+                device_map="auto",
+                trust_remote_code=True,
+            )
+            model = prepare_model_for_kbit_training(model)
+            return tokenizer, get_peft_model(model, lora)
         model = AutoModelForCausalLM.from_pretrained(
             MODEL_ID,
-            quantization_config=bnb,
+            torch_dtype=torch.bfloat16,
             device_map="auto",
             trust_remote_code=True,
         )
-        model = prepare_model_for_kbit_training(model)
         return tokenizer, get_peft_model(model, lora)
 
     model = AutoModelForCausalLM.from_pretrained(
@@ -147,7 +159,6 @@ def train() -> dict:
 
     import torch
     from datasets import Dataset
-    from trl import SFTConfig, SFTTrainer
 
     if not TRAIN_TRACE.path.is_file():
         raise FileNotFoundError(
@@ -173,32 +184,63 @@ def train() -> dict:
             "CUDA GPU required for QLoRA training; CPU runs OOM on this checkpoint."
         )
     max_steps = int(os.environ.get("TRAIN_MAX_STEPS", "0"))
-    sft_args = SFTConfig(
-        output_dir=str(OUTPUT_DIR),
-        num_train_epochs=NUM_EPOCHS,
-        per_device_train_batch_size=BATCH_SIZE,
-        gradient_accumulation_steps=GRAD_ACCUM,
-        learning_rate=LEARNING_RATE,
-        logging_steps=1,
-        save_strategy="epoch",
-        bf16=True,
-        max_seq_length=MAX_SEQ_LENGTH,
-        dataset_text_field="text",
-        max_steps=max_steps if max_steps > 0 else -1,
-        report_to="none",
-    )
-    trainer = SFTTrainer(
-        model=model,
-        args=sft_args,
-        train_dataset=dataset,
-        processing_class=tokenizer,
-    )
+    try:
+        from trl import SFTConfig, SFTTrainer
+    except ImportError:
+        from transformers import DataCollatorForLanguageModeling, Trainer, TrainingArguments
+
+        tokenized = build_dataset(tokenizer)
+        training_args = TrainingArguments(
+            output_dir=str(OUTPUT_DIR),
+            num_train_epochs=NUM_EPOCHS,
+            per_device_train_batch_size=BATCH_SIZE,
+            gradient_accumulation_steps=GRAD_ACCUM,
+            learning_rate=LEARNING_RATE,
+            logging_steps=1,
+            save_strategy="epoch",
+            bf16=True,
+            max_steps=max_steps if max_steps > 0 else -1,
+            report_to="none",
+        )
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=tokenized,
+            data_collator=DataCollatorForLanguageModeling(
+                tokenizer=tokenizer, mlm=False
+            ),
+        )
+    else:
+        sft_args = SFTConfig(
+            output_dir=str(OUTPUT_DIR),
+            num_train_epochs=NUM_EPOCHS,
+            per_device_train_batch_size=BATCH_SIZE,
+            gradient_accumulation_steps=GRAD_ACCUM,
+            learning_rate=LEARNING_RATE,
+            logging_steps=1,
+            save_strategy="epoch",
+            bf16=True,
+            max_seq_length=MAX_SEQ_LENGTH,
+            dataset_text_field="text",
+            max_steps=max_steps if max_steps > 0 else -1,
+            report_to="none",
+        )
+        trainer = SFTTrainer(
+            model=model,
+            args=sft_args,
+            train_dataset=dataset,
+            processing_class=tokenizer,
+        )
     result = trainer.train()
     adapter_dir = OUTPUT_DIR / "adapter"
     model.save_pretrained(adapter_dir)
     tokenizer.save_pretrained(adapter_dir)
+    import importlib.util
+
+    quant = "4bit" if importlib.util.find_spec("bitsandbytes") else "bf16"
     return {
         "device": "cuda",
+        "quantization": quant,
         "global_step": result.global_step,
         "train_loss": result.training_loss,
         "output_dir": str(adapter_dir),

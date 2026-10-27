@@ -29,3 +29,9 @@ else
   exit 1
 fi
 chmod 600 "$HOME/.kaggle/kaggle.json"
+# Kaggle CLI 2.x uses access tokens (KGAT_…) via KAGGLE_API_TOKEN, not legacy key alone.
+case "${KAGGLE_KEY:-}" in
+  KGAT_*)
+    export KAGGLE_API_TOKEN="$KAGGLE_KEY"
+    ;;
+esac
