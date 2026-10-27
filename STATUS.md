@@ -20,3 +20,4 @@ waiting: none
 - 2026-10-27 — Keyword baseline scored on train and transfer. Next is QLoRA notebook stub.
 - 2026-10-27 — QLoRA notebook stub added; waiting for training go-ahead. Report written from the log.
 - 2026-10-27 — Training go-ahead granted; traces exported; QLoRA run blocked on this host (no GPU, CPU OOM). Use the notebook on a free GPU runtime.
+- 2026-10-27 — Kaggle GPU runner added (`scripts/run_kaggle_training.sh`); API secrets not injected on this agent boot — recheck after secrets reload.
