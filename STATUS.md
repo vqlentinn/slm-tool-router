@@ -1,7 +1,7 @@
 # Status
 
 next: none
-updated: 2026-10-27
+updated: 2026-11-02
 waiting: none
 
 ## Milestones
@@ -24,3 +24,4 @@ waiting: none
 - 2026-10-27 — User confirmed relance; Kaggle training delegated to fresh cloud run bc-698ed86a-cd4a-5478-8727-692c1b51f2b0.
 - 2026-10-27 — Relance run saw `KAGGLE_KEY` only; training blocked until `KAGGLE_USERNAME` or `KAGGLE_JSON` is added, then `./scripts/run_kaggle_training.sh` again.
 - 2026-10-27 — Kaggle relance with both secrets: kernel v15 ERROR (no GPU on worker; CUDA required). Runner hardened; retry when GPU quota available.
+- 2026-11-02 — Kaggle retry (bc-8b794a29): secrets OK; kernel v16 pushed, ran ~8 min then ERROR — still no GPU (`nvidia-smi` missing, torch CPU); CUDA required. Retry when T4 quota returns.

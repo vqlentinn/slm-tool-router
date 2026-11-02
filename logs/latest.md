@@ -20,10 +20,10 @@ note: data/predictions.jsonl holds t17–t24 only. Gold unchanged.
 | runner | `python3 notebooks/qlora_qwen3_1_7b.py` |
 | this VM | no CUDA; CPU forward/backward OOM (~15 GiB cap) |
 | result | adapter not written here; use free GPU notebook per `notebooks/qlora_qwen3_1_7b.py` |
-| kaggle | pushed/ran private kernel `slm-toolrouter-qlora-train` (v15); secrets OK; runner fixes (API token, bundle, T4 `machine_shape`, hf-mirror model fetch) — see [bc-234754e7](https://cursor.com/agents/bc-234754e7-fead-5670-8a8a-6fa17944866f) |
-| kaggle_device | **cuda T4 intended** (`NvidiaTeslaT4`); v9 reached bf16 load + hf-mirror download; v13–v15 **no GPU** (`nvidia-smi` missing, `torch 2.11.0+cpu`) — likely weekly GPU quota |
-| kaggle_steps | n/a (training loop not reached on last runs) |
-| kaggle_success | false — last kernel `KernelWorkerStatus.ERROR` (`RuntimeError`: CUDA required); no `KAGGLE_TRAINING_SUMMARY` in output |
+| kaggle | pushed/ran private kernel `slm-toolrouter-qlora-train` (v16); secrets OK (username len 13, key len 37); retry [bc-8b794a29](https://cursor.com/agents/bc-8b794a29-1966-5e65-bb29-a66e5f52046c) after v15 quota/GPU miss |
+| kaggle_device | **cuda T4 intended** (`NvidiaTeslaT4`); v16 worker **no GPU** (`nvidia-smi` not found, `torch 2.11.0+cpu`, `cuda False`); v9 had GPU + hf-mirror; v13–v16 same CPU-only worker pattern — likely weekly GPU quota |
+| kaggle_steps | n/a (training loop not reached; model weights loaded on CPU then aborted) |
+| kaggle_success | false — v16 `KernelWorkerStatus.ERROR` (`RuntimeError`: CUDA GPU required for QLoRA); no `KAGGLE_TRAINING_SUMMARY`; no `train_loss` / `global_step` |
 
 ## Scores
 
