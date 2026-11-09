@@ -50,6 +50,15 @@ class TrainSplit:
 TRAIN_TRACE = TrainSplit("train", EXPORT_DIR / "train.jsonl")
 
 
+def cuda_supports_bf16() -> bool:
+    import torch
+
+    if not torch.cuda.is_available():
+        return False
+    major, _minor = torch.cuda.get_device_capability()
+    return major >= 8
+
+
 def format_episode(instruction: str, calls: list[dict]) -> str:
     """Chat-style SFT row: instruction then one JSON tool call per line."""
     lines = ["<|user|>", instruction, "<|assistant|>"]
@@ -83,10 +92,13 @@ def load_model_and_tokenizer():
         except ImportError:
             bitsandbytes = None  # type: ignore[assignment]
         if bitsandbytes is not None:
+            compute_dtype = (
+                torch.bfloat16 if cuda_supports_bf16() else torch.float16
+            )
             bnb = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_compute_dtype=compute_dtype,
                 bnb_4bit_use_double_quant=True,
             )
             model = AutoModelForCausalLM.from_pretrained(
@@ -97,9 +109,10 @@ def load_model_and_tokenizer():
             )
             model = prepare_model_for_kbit_training(model)
             return tokenizer, get_peft_model(model, lora)
+        dtype = torch.bfloat16 if cuda_supports_bf16() else torch.float16
         model = AutoModelForCausalLM.from_pretrained(
             MODEL_ID,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=dtype,
             device_map="auto",
             trust_remote_code=True,
         )
@@ -157,6 +170,9 @@ def train() -> dict:
     import json
     import os
 
+    os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get(
+        "CUDA_VISIBLE_DEVICES", "0"
+    ).split(",")[0]
     import torch
     from datasets import Dataset
 
@@ -184,6 +200,9 @@ def train() -> dict:
             "CUDA GPU required for QLoRA training; CPU runs OOM on this checkpoint."
         )
     max_steps = int(os.environ.get("TRAIN_MAX_STEPS", "0"))
+    use_bf16 = cuda_supports_bf16()
+    # T4 is sm 7.5: bf16 AMP is unsupported. 4-bit QLoRA still computes in float16.
+    use_fp16 = False
     try:
         from trl import SFTConfig, SFTTrainer
     except ImportError:
@@ -198,7 +217,8 @@ def train() -> dict:
             learning_rate=LEARNING_RATE,
             logging_steps=1,
             save_strategy="epoch",
-            bf16=True,
+            bf16=use_bf16,
+            fp16=use_fp16,
             max_steps=max_steps if max_steps > 0 else -1,
             report_to="none",
         )
@@ -219,8 +239,9 @@ def train() -> dict:
             learning_rate=LEARNING_RATE,
             logging_steps=1,
             save_strategy="epoch",
-            bf16=True,
-            max_seq_length=MAX_SEQ_LENGTH,
+            bf16=use_bf16,
+            fp16=use_fp16,
+            max_length=MAX_SEQ_LENGTH,
             dataset_text_field="text",
             max_steps=max_steps if max_steps > 0 else -1,
             report_to="none",
@@ -237,9 +258,13 @@ def train() -> dict:
     tokenizer.save_pretrained(adapter_dir)
     import importlib.util
 
-    quant = "4bit" if importlib.util.find_spec("bitsandbytes") else "bf16"
+    quant = "4bit" if importlib.util.find_spec("bitsandbytes") else (
+        "bf16" if use_bf16 else "fp16"
+    )
+    major, minor = torch.cuda.get_device_capability(0)
     return {
-        "device": "cuda",
+        "device": torch.cuda.get_device_name(0),
+        "device_capability": f"{major}.{minor}",
         "quantization": quant,
         "global_step": result.global_step,
         "train_loss": result.training_loss,
@@ -261,4 +286,4 @@ def train() -> dict:
 if __name__ == "__main__":
     import json
 
-    print(json.dumps(train(), indent=2))
+    print(json.dumps(train()))
