@@ -1,0 +1,15 @@
+{
+  "id": "__KAGGLE_USER__/slm-toolrouter-qlora-eval",
+  "title": "slm-toolrouter-qlora-eval",
+  "code_file": "eval.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_internet": true,
+  "run_on_save": true,
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": []
+}

@@ -36,6 +36,11 @@ BATCH_SIZE = 1
 GRAD_ACCUM = 8
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+import sys
+
+sys.path.insert(0, str(REPO_ROOT / "src"))
+from toolrouter.episode_text import format_episode
+
 INSTRUCTIONS = REPO_ROOT / "data" / "instructions.jsonl"
 EXPORT_DIR = REPO_ROOT / "data" / "traces"
 OUTPUT_DIR = REPO_ROOT / "artifacts" / "qwen3-1.7b-qlora-toolrouter"
@@ -57,14 +62,6 @@ def cuda_supports_bf16() -> bool:
         return False
     major, _minor = torch.cuda.get_device_capability()
     return major >= 8
-
-
-def format_episode(instruction: str, calls: list[dict]) -> str:
-    """Chat-style SFT row: instruction then one JSON tool call per line."""
-    lines = ["<|user|>", instruction, "<|assistant|>"]
-    for call in calls:
-        lines.append(f"TOOL {call['tool']} {call['args']}")
-    return "\n".join(lines)
 
 
 # %% [markdown]
