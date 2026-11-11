@@ -88,6 +88,7 @@ import torch
 
 print("torch", torch.__version__, "cuda", torch.cuda.is_available(), flush=True)
 if torch.cuda.is_available():
+    print("cuda_device", torch.cuda.get_device_name(0), flush=True)
     raise SystemExit(0)
 subprocess.check_call(
     [
@@ -107,7 +108,19 @@ torch = importlib.import_module("torch")
 print("torch", torch.__version__, "cuda", torch.cuda.is_available(), flush=True)
 PY"""
     )
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
     os.environ["PYTHONPATH"] = str(WORKDIR / "src")
+    run(
+        """python3 - <<'PY'
+import sys
+import torch
+print("torch", torch.__version__, "cuda", torch.cuda.is_available(), flush=True)
+if not torch.cuda.is_available():
+    print("CUDA GPU required for QLoRA; refusing to load weights on CPU", flush=True)
+    sys.exit(1)
+print("cuda_device", torch.cuda.get_device_name(0), flush=True)
+PY"""
+    )
     run("python3 scripts/export_traces.py")
     ensure_model_id()
     os.environ["TRAIN_MAX_STEPS"] = TRAIN_STEPS
