@@ -59,12 +59,10 @@ def cuda_supports_bf16() -> bool:
     return major >= 8
 
 
-def format_episode(instruction: str, calls: list[dict]) -> str:
-    """Chat-style SFT row: instruction then one JSON tool call per line."""
-    lines = ["<|user|>", instruction, "<|assistant|>"]
-    for call in calls:
-        lines.append(f"TOOL {call['tool']} {call['args']}")
-    return "\n".join(lines)
+import sys
+
+sys.path.insert(0, str(REPO_ROOT / "src"))
+from toolrouter.episode_text import format_episode
 
 
 # %% [markdown]

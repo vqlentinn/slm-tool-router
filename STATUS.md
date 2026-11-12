@@ -1,7 +1,7 @@
 # Status
 
-next: Evaluate the Qwen3-1.7B QLoRA adapter from Kaggle kernel slm-toolrouter-qlora-train v28 on transfer tasks t17–t24. Download artifacts/qwen3-1.7b-qlora-toolrouter/adapter from that kernel output, score with `python -m toolrouter report`, and add the transfer row to the score table. Leave gold unchanged.
-updated: 2026-11-09
+next: none
+updated: 2026-11-12
 waiting: none
 
 ## Milestones
@@ -26,3 +26,4 @@ waiting: none
 - 2026-10-27 — Kaggle relance with both secrets: kernel v15 ERROR (no GPU on worker; CUDA required). Runner hardened; retry when GPU quota available.
 - 2026-11-02 — Kaggle retry (bc-8b794a29): secrets OK; kernel v16 pushed, ran ~8 min then ERROR — still no GPU (`nvidia-smi` missing, torch CPU); CUDA required. Retry when T4 quota returns.
 - 2026-11-09 — Kaggle QLoRA v28 COMPLETE. Worker saw two Tesla T4s; `nvidia-smi` listed them, torch 2.11.0+cu128 reported cuda True, training used device 0 (sm 7.5, 4-bit). 24 steps, train_loss 1.974, adapter written. Next is the transfer-split evaluation of that adapter.
+- 2026-11-12 — QLoRA v28 adapter scored on transfer (Kaggle eval kernel, Tesla T4, greedy decode): exact_match 0.000, stagnation 0.500, tool_errors 6.125, calls 6.62. Predictions in `data/qlora_v28.jsonl`. Experiment complete.

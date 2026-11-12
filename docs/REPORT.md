@@ -9,3 +9,4 @@ Numbers are taken from [logs/latest.md](../logs/latest.md) only.
 | specification | 8 | 1.000 | 0.000 | 0.000 | 3.38 |
 | keyword baseline | 8 | 1.000 | 0.000 | 0.000 | 3.38 |
 | blind predictions | 8 | 1.000 | 0.000 | 0.000 | 3.38 |
+| QLoRA v28 (greedy) | 8 | 0.000 | 0.500 | 6.125 | 6.62 |

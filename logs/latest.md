@@ -1,15 +1,15 @@
 # Latest
 
-milestone: M5
-result: QLoRA adapter trained on Tesla T4
-next: Evaluate the v28 adapter on transfer tasks t17–t24
+milestone: done
+result: QLoRA v28 transfer eval logged
+next: none
 train: 16/16
 transfer: 8/8
 held_out_tools: escalate lookup_customer_by_email quote_refund
 held_out_leaked_into_train: none
 tests: passed
 waiting: none
-note: data/predictions.jsonl holds t17–t24 only. Gold unchanged. Adapter weights stay on the Kaggle kernel output (v28), not in git.
+note: Blind solve in `data/predictions.jsonl`; QLoRA greedy decode in `data/qlora_v28.jsonl`. Adapter weights stay on Kaggle kernel output (v28), not in git.
 
 ## QLoRA training (go-ahead: yes)
 
@@ -18,12 +18,14 @@ note: data/predictions.jsonl holds t17–t24 only. Gold unchanged. Adapter weigh
 | target | Qwen/Qwen3-1.7B |
 | traces | `scripts/export_traces.py` → `data/traces/train.jsonl` (16 rows, gitignored) |
 | runner | `python3 notebooks/qlora_qwen3_1_7b.py` |
-| this VM | no CUDA; CPU forward/backward OOM (~15 GiB cap) |
+| eval | `scripts/eval_adapter.py` (CUDA); Kaggle kernel `slm-toolrouter-qlora-eval` |
+| this VM | no CUDA; CPU forward/backward OOM (~15 GiB cap) |
 | result | v28 adapter written on Kaggle (`adapter_exists` true, 4-bit QLoRA) |
 | kaggle | private kernel `slm-toolrouter-qlora-train` v28 `KernelWorkerStatus.COMPLETE` after a GPU queue; v16 had failed with no GPU |
 | kaggle_device | Tesla T4. `nvidia-smi -L` showed GPU 0 and GPU 1. torch 2.11.0+cu128 `cuda True`. Training pinned to CUDA device 0: Tesla T4, capability 7.5 |
 | kaggle_steps | 24 (`epoch` 12, `train_runtime` 110.1s, `train_loss` 1.974) |
 | kaggle_success | true — `KAGGLE_TRAINING_SUMMARY` with `global_step` 24, `train_loss` 1.9737860734264057, quantization 4bit, adapter files present |
+| kaggle_eval | Tesla T4, 4-bit, greedy decode, 8 transfer tasks — `EVAL_SUMMARY` on kernel `slm-toolrouter-qlora-eval` |
 
 ## Scores
 
@@ -34,3 +36,6 @@ note: data/predictions.jsonl holds t17–t24 only. Gold unchanged. Adapter weigh
 | transfer | specification | 8 | 1.000 | 0.000 | 0.000 | 3.38 |
 | transfer | blind predictions | 8 | 1.000 | 0.000 | 0.000 | 3.38 |
 | transfer | keyword baseline | 8 | 1.000 | 0.000 | 0.000 | 3.38 |
+| transfer | QLoRA v28 (greedy) | 8 | 0.000 | 0.500 | 6.125 | 6.62 |
+
+Report on transfer-only file (`python -m toolrouter report data/qlora_v28.jsonl`) prints the QLoRA transfer row; train ids are missing by design.

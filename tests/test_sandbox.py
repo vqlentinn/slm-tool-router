@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 from toolrouter.catalog import BY_NAME, CATALOG
+from toolrouter.episode_text import format_episode, parse_tool_calls
 from toolrouter.keyword import keyword_hits, plan
 from toolrouter.score import execute, is_stagnant, score_episode
 from toolrouter.tasks import HELD_OUT_TOOLS, catalog_ready, load_instructions, load_tasks, tool_sets
@@ -108,6 +109,15 @@ def test_keyword_baseline_scores_all_tasks():
         result = score_episode(predicted, task["calls"])
         assert result["success"], (task["id"], result)
     assert keyword_hits("lookup order status", "lookup_order") >= 1
+
+
+def test_episode_text_roundtrip():
+    calls = [
+        {"tool": "lookup_order", "args": {"order_id": "A100"}},
+        {"tool": "send_email", "args": {"customer_id": "ada", "template": "shipment_status"}},
+    ]
+    text = format_episode("Tell customer ada where order A100 is.", calls)
+    assert parse_tool_calls(text.split("<|assistant|>\n", 1)[1]) == calls
 
 
 def test_refund_mutates_a_copy():
